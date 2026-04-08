@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from statistics import mean
 from typing import Dict, List
 
@@ -63,7 +64,11 @@ def run_baseline(model: str, episodes: int, max_steps: int) -> Dict[str, Dict[st
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run OpenAI baseline for OpenEnv tasks")
-    parser.add_argument("--model", default="gpt-4.1-mini", help="OpenAI model name")
+    parser.add_argument(
+        "--model",
+        default=os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct"),
+        help="OpenAI model name (default: MODEL_NAME env var)",
+    )
     parser.add_argument("--episodes", type=int, default=3, help="Episodes per task")
     parser.add_argument("--max-steps", type=int, default=64, help="Max steps per episode")
     args = parser.parse_args()

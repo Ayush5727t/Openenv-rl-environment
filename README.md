@@ -11,75 +11,18 @@ tags:
 
 # OpenEnv Customer Support Triage
 
-A real-world OpenEnv environment where agents perform customer support operations: classify tickets, set SLA priority, assign teams, reorder queue, escalate critical issues, draft safe responses, and resolve tickets.
+A deterministic OpenEnv-style environment for customer support triage.
 
-## Why this environment
+Agents perform realistic operations such as classification, priority assignment, team routing, queue reordering, escalation, response drafting, and ticket resolution.
 
-Customer support triage is a daily operational workflow in real companies. This environment provides deterministic evaluation and dense reward shaping so model improvements are measurable over full trajectories, not only final outcomes.
+## What this repository includes
 
-## OpenEnv API
-
-The environment implements the standard API:
-
-- `reset(task_id: Optional[str], seed: Optional[int]) -> Observation`
-- `step(action: Action) -> (Observation, Reward, done: bool, info: dict)`
-- `state() -> EnvironmentState`
-
-Primary runtime class: `openenv_support.env.CustomerSupportEnv`
-
-## Typed models
-
-Pydantic models are defined in `openenv_support.models`:
-
-- `Observation`
-- `Action`
-- `Reward`
-- `EnvironmentState`
-
-## Action space
-
-`Action.action_type` supports:
-
-- `classify` with `value` in: `billing`, `technical`, `account`, `abuse`
-- `set_priority` with `value` in: `low`, `medium`, `high`, `urgent`
-- `assign_team` with `value` in: `billing_ops`, `tech_support`, `trust_safety`, `account_support`
-- `reorder_queue` with `ticket_id` and `target_index`
-- `escalate` with `ticket_id`
-- `draft_response` with `ticket_id` and `response_text`
-- `resolve` with `ticket_id`
-- `noop`
-
-## Observation space
-
-Each observation includes:
-
-- task metadata (`task_id`, `step_count`, `remaining_steps`)
-- queue ordering (`queue_order`)
-- per-ticket state (`subject`, `customer_message`, predicted fields, escalation, resolution)
-- available actions and instruction
-
-## Tasks and difficulty
-
-Three deterministic tasks with graders in range `0.0` to `1.0`:
-
-1. Easy: Single ticket triage and resolution
-2. Medium: Multi-ticket SLA-aware queue ordering plus triage
-3. Hard: Escalation-critical triage with response quality checks
-
-Task fixtures: `openenv_support/tasks/definitions.py`
-
-Grader: `openenv_support/graders/task_graders.py`
-
-## Reward design
-
-Reward is trajectory-shaped and not purely terminal:
-
-- positive signal for partial progress via grader score deltas
-- penalties for invalid actions
-- penalties for repeated looping behavior
-- timeout penalty near episode end
-
-This provides meaningful incremental learning signals while preserving final objective quality.
+- Environment runtime with `reset`, `step`, and `state` APIs
+- Deterministic task definitions (`easy`, `medium`, `hard`)
+- Reward shaping and deterministic graders
+- Baseline OpenAI-compatible inference runner
+- Root submission entrypoint `inference.py`
+- Gradio app for local and Hugging Face Spaces usage
 
 ## Setup
 
@@ -89,13 +32,19 @@ source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
 pip install -r requirements.txt
 ```
 
-## Quick run
+## Quick environment check
 
 ```bash
 python -c "from openenv_support.env import CustomerSupportEnv; env=CustomerSupportEnv(); obs=env.reset('easy'); print(obs.model_dump())"
 ```
 
-## Validate OpenEnv metadata
+## Run tests
+
+```bash
+pytest -q
+```
+
+## Validate metadata
 
 ```bash
 openenv validate openenv.yaml
@@ -103,22 +52,36 @@ openenv validate openenv.yaml
 
 If `openenv` CLI is not installed in your environment, install it first using your preferred package manager.
 
-## Baseline inference (OpenAI)
+## Baseline inference
 
-The baseline script uses the OpenAI API client and reads credentials from environment variable `OPENAI_API_KEY`.
+The baseline uses the OpenAI client with OpenAI-compatible endpoints.
 
-```bash
-export OPENAI_API_KEY=your_key_here  # Windows PowerShell: $env:OPENAI_API_KEY="your_key_here"
-python -m baseline.run_baseline --model gpt-4.1-mini --episodes 3 --max-steps 64
-```
+Environment variables:
 
-The script reports average task scores across `easy`, `medium`, and `hard` with fixed decoding parameters (`temperature=0`, `top_p=1`) for reproducible behavior.
-
-## Test
+- `HF_TOKEN` (optional API key)
+- `API_BASE_URL` (optional, default: `https://router.huggingface.co/v1`)
+- `MODEL_NAME` (optional, default: `Qwen/Qwen2.5-72B-Instruct`)
 
 ```bash
-pytest -q
+export HF_TOKEN=your_key_here  # Windows PowerShell: $env:HF_TOKEN="your_key_here"
+export API_BASE_URL=https://router.huggingface.co/v1  # optional
+export MODEL_NAME=Qwen/Qwen2.5-72B-Instruct  # optional
+python -m baseline.run_baseline --episodes 3 --max-steps 64
 ```
+
+## Submission inference
+
+Run the root submission script:
+
+```bash
+python inference.py
+```
+
+It emits the required line-based logs in this order:
+
+- `[START]`
+- `[STEP]` (one per `env.step`)
+- `[END]`
 
 ## Hugging Face Spaces deployment
 
@@ -126,7 +89,7 @@ This repository is container-ready for HF Spaces (`sdk: docker`):
 
 1. Push repository to a new Space
 2. Ensure `Dockerfile` is at repository root
-3. Add `OPENAI_API_KEY` as a Space secret if using OpenAI baseline
+3. Add `HF_TOKEN` as a Space secret if you use a remote model provider
 4. Space app entrypoint runs `python -m spaces.app`
 
 ## Docker
@@ -140,7 +103,7 @@ docker run --rm -p 7860:7860 openenv-support
 
 Then open `http://localhost:7860`.
 
-## Project layout
+## Project structure
 
 - `openenv_support/env.py`: environment runtime (`reset`, `step`, `state`)
 - `openenv_support/models.py`: typed Pydantic models
@@ -148,6 +111,8 @@ Then open `http://localhost:7860`.
 - `openenv_support/graders/task_graders.py`: deterministic score graders
 - `openenv_support/reward.py`: reward shaping
 - `baseline/run_baseline.py`: OpenAI baseline evaluation
+- `baseline/inference.py`: baseline action generation
+- `inference.py`: submission entrypoint
 - `spaces/app.py`: HF Spaces app
 - `openenv.yaml`: OpenEnv metadata
 - `tests/`: API and determinism tests

@@ -10,20 +10,25 @@ from openenv_support.models import Action
 from .prompts import system_prompt, user_prompt
 
 
+API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
+MODEL_NAME = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
+
+
 def build_client() -> OpenAI:
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is not set")
-    return OpenAI(api_key=api_key)
+    api_key = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+    # Keep credentials optional for local/open endpoints.
+    # OpenAI client requires a non-empty api_key value, so use a non-secret placeholder.
+    return OpenAI(base_url=API_BASE_URL, api_key=api_key or "no-auth")
 
 
 def request_action(
     client: OpenAI,
-    model: str,
+    model: Optional[str],
     observation_json_prompt: str,
 ) -> Action:
+    selected_model = model or MODEL_NAME
     response = client.chat.completions.create(
-        model=model,
+        model=selected_model,
         temperature=0,
         top_p=1,
         response_format={"type": "json_object"},
