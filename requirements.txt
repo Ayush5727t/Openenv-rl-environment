@@ -1,0 +1,29 @@
+# Core dependencies
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Web framework & API
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# UI for Hugging Face Spaces
+gradio>=4.0.0
+
+# Environment & utilities
+python-dotenv>=1.0.0
+numpy>=1.24.0
+typing-extensions>=4.8.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+
+# Optional AI/ML dependencies
+openai>=1.0.0  # For potential AI agent interactions
+anthropic>=0.7.0  # Alternative AI provider
+
+# Development tools
+black>=23.0.0
+ruff>=0.1.0
+mypy>=1.7.0

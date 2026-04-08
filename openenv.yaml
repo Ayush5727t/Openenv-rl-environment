@@ -1,0 +1,28 @@
+name: customer-support-triage-v1
+version: 1.0.0
+description: |
+  Real-world customer support ticket triage environment for agent evaluation.
+  Agents must classify, prioritize, assign, reorder queue, escalate, and resolve tickets.
+tags:
+  - openenv
+  - customer-support
+  - triage
+entrypoint: openenv_support.env:CustomerSupportEnv
+api:
+  reset: true
+  step: true
+  state: true
+models:
+  observation: openenv_support.models:Observation
+  action: openenv_support.models:Action
+  reward: openenv_support.models:Reward
+tasks:
+  - id: easy
+    title: Single ticket triage
+    difficulty: easy
+  - id: medium
+    title: Queue ordering under SLA
+    difficulty: medium
+  - id: hard
+    title: Complex triage with escalation and compliant response
+    difficulty: hard
